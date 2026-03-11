@@ -499,33 +499,71 @@ func transformComponentUnits(unitsToTransform map[string]string, updateUnitsk8s 
 						continue
 					}
 
-					for _, section := range []string{"limits", "requests"} {
-						sectionObject, ok := recommendationSection[section].(map[string]interface{})
-						if ok {
-							memoryObject, ok := sectionObject["memory"].(map[string]interface{})
+					// Handle the new nested structure with resources
+					resourcesObject, ok := recommendationSection["resources"].(map[string]interface{})
+					if ok {
+						for _, section := range []string{"limits", "requests"} {
+							sectionObject, ok := resourcesObject[section].(map[string]interface{})
 							if ok {
-								if memoryValue, ok := memoryObject["amount"].(float64); ok {
-									memoryUnit := unitsToTransform["memory"]
-									convertedMemoryValue := convertMemoryUnit(memoryUnit, memoryValue)
-									memoryObject["amount"] = convertedMemoryValue
-									if updateUnitsk8s {
-										memoryObject["format"] = MemoryUnitk8s[memoryUnit]
-									} else {
-										memoryObject["format"] = memoryUnit
+								memoryObject, ok := sectionObject["memory"].(map[string]interface{})
+								if ok {
+									if memoryValue, ok := memoryObject["amount"].(float64); ok {
+										memoryUnit := unitsToTransform["memory"]
+										convertedMemoryValue := convertMemoryUnit(memoryUnit, memoryValue)
+										memoryObject["amount"] = convertedMemoryValue
+										if updateUnitsk8s {
+											memoryObject["format"] = MemoryUnitk8s[memoryUnit]
+										} else {
+											memoryObject["format"] = memoryUnit
+										}
+									}
+								}
+
+								cpuObject, ok := sectionObject["cpu"].(map[string]interface{})
+								if ok {
+									if cpuValue, ok := cpuObject["amount"].(float64); ok {
+										cpuUnit := unitsToTransform["cpu"]
+										convertedCPUValue := convertCPUUnit(cpuUnit, cpuValue)
+										cpuObject["amount"] = convertedCPUValue
+										if updateUnitsk8s {
+											cpuObject["format"] = CPUUnitk8s[cpuUnit]
+										} else {
+											cpuObject["format"] = cpuUnit
+										}
 									}
 								}
 							}
-
-							cpuObject, ok := sectionObject["cpu"].(map[string]interface{})
+						}
+					} else {
+						// Fallback to old structure for backward compatibility
+						for _, section := range []string{"limits", "requests"} {
+							sectionObject, ok := recommendationSection[section].(map[string]interface{})
 							if ok {
-								if cpuValue, ok := cpuObject["amount"].(float64); ok {
-									cpuUnit := unitsToTransform["cpu"]
-									convertedCPUValue := convertCPUUnit(cpuUnit, cpuValue)
-									cpuObject["amount"] = convertedCPUValue
-									if updateUnitsk8s {
-										cpuObject["format"] = CPUUnitk8s[cpuUnit]
-									} else {
-										cpuObject["format"] = cpuUnit
+								memoryObject, ok := sectionObject["memory"].(map[string]interface{})
+								if ok {
+									if memoryValue, ok := memoryObject["amount"].(float64); ok {
+										memoryUnit := unitsToTransform["memory"]
+										convertedMemoryValue := convertMemoryUnit(memoryUnit, memoryValue)
+										memoryObject["amount"] = convertedMemoryValue
+										if updateUnitsk8s {
+											memoryObject["format"] = MemoryUnitk8s[memoryUnit]
+										} else {
+											memoryObject["format"] = memoryUnit
+										}
+									}
+								}
+
+								cpuObject, ok := sectionObject["cpu"].(map[string]interface{})
+								if ok {
+									if cpuValue, ok := cpuObject["amount"].(float64); ok {
+										cpuUnit := unitsToTransform["cpu"]
+										convertedCPUValue := convertCPUUnit(cpuUnit, cpuValue)
+										cpuObject["amount"] = convertedCPUValue
+										if updateUnitsk8s {
+											cpuObject["format"] = CPUUnitk8s[cpuUnit]
+										} else {
+											cpuObject["format"] = cpuUnit
+										}
 									}
 								}
 							}
@@ -679,36 +717,76 @@ func convertVariationToPercentage(recommendationJSON map[string]interface{}) map
 						continue
 					}
 
-					for _, section := range []string{"limits", "requests"} {
-						sectionObject, ok := recommendationSection[section].(map[string]interface{})
-						if ok {
-							memoryObject, ok := sectionObject["memory"].(map[string]interface{})
+					// Handle the new nested structure with resources
+					resourcesObject, ok := recommendationSection["resources"].(map[string]interface{})
+					if ok {
+						for _, section := range []string{"limits", "requests"} {
+							sectionObject, ok := resourcesObject[section].(map[string]interface{})
 							if ok {
-								if memoryValue, ok := memoryObject["amount"].(float64); ok {
-									switch section {
-									case "limits":
-										percentageMemoryValue := calculatePercentage(memoryValue, currentMemoryLimits)
-										memoryObject["amount"] = truncateToThreeDecimalPlaces(percentageMemoryValue)
-									case "requests":
-										percentageMemoryValue := calculatePercentage(memoryValue, currentMemoryRequests)
-										memoryObject["amount"] = truncateToThreeDecimalPlaces(percentageMemoryValue)
+								memoryObject, ok := sectionObject["memory"].(map[string]interface{})
+								if ok {
+									if memoryValue, ok := memoryObject["amount"].(float64); ok {
+										switch section {
+										case "limits":
+											percentageMemoryValue := calculatePercentage(memoryValue, currentMemoryLimits)
+											memoryObject["amount"] = truncateToThreeDecimalPlaces(percentageMemoryValue)
+										case "requests":
+											percentageMemoryValue := calculatePercentage(memoryValue, currentMemoryRequests)
+											memoryObject["amount"] = truncateToThreeDecimalPlaces(percentageMemoryValue)
+										}
+										memoryObject["format"] = "percent"
 									}
-									memoryObject["format"] = "percent"
+								}
+
+								cpuObject, ok := sectionObject["cpu"].(map[string]interface{})
+								if ok {
+									if cpuValue, ok := cpuObject["amount"].(float64); ok {
+										switch section {
+										case "limits":
+											percentageCpuValue := calculatePercentage(cpuValue, currentCpuLimits)
+											cpuObject["amount"] = truncateToThreeDecimalPlaces(percentageCpuValue)
+										case "requests":
+											percentageCpuValue := calculatePercentage(cpuValue, currentCpuRequests)
+											cpuObject["amount"] = truncateToThreeDecimalPlaces(percentageCpuValue)
+										}
+										cpuObject["format"] = "percent"
+									}
 								}
 							}
-
-							cpuObject, ok := sectionObject["cpu"].(map[string]interface{})
+						}
+					} else {
+						// Fallback to old structure for backward compatibility
+						for _, section := range []string{"limits", "requests"} {
+							sectionObject, ok := recommendationSection[section].(map[string]interface{})
 							if ok {
-								if cpuValue, ok := cpuObject["amount"].(float64); ok {
-									switch section {
-									case "limits":
-										percentageCpuValue := calculatePercentage(cpuValue, currentCpuLimits)
-										cpuObject["amount"] = truncateToThreeDecimalPlaces(percentageCpuValue)
-									case "requests":
-										percentageCpuValue := calculatePercentage(cpuValue, currentCpuRequests)
-										cpuObject["amount"] = truncateToThreeDecimalPlaces(percentageCpuValue)
+								memoryObject, ok := sectionObject["memory"].(map[string]interface{})
+								if ok {
+									if memoryValue, ok := memoryObject["amount"].(float64); ok {
+										switch section {
+										case "limits":
+											percentageMemoryValue := calculatePercentage(memoryValue, currentMemoryLimits)
+											memoryObject["amount"] = truncateToThreeDecimalPlaces(percentageMemoryValue)
+										case "requests":
+											percentageMemoryValue := calculatePercentage(memoryValue, currentMemoryRequests)
+											memoryObject["amount"] = truncateToThreeDecimalPlaces(percentageMemoryValue)
+										}
+										memoryObject["format"] = "percent"
 									}
-									cpuObject["format"] = "percent"
+								}
+
+								cpuObject, ok := sectionObject["cpu"].(map[string]interface{})
+								if ok {
+									if cpuValue, ok := cpuObject["amount"].(float64); ok {
+										switch section {
+										case "limits":
+											percentageCpuValue := calculatePercentage(cpuValue, currentCpuLimits)
+											cpuObject["amount"] = truncateToThreeDecimalPlaces(percentageCpuValue)
+										case "requests":
+											percentageCpuValue := calculatePercentage(cpuValue, currentCpuRequests)
+											cpuObject["amount"] = truncateToThreeDecimalPlaces(percentageCpuValue)
+										}
+										cpuObject["format"] = "percent"
+									}
 								}
 							}
 						}
@@ -784,25 +862,25 @@ func GenerateCSVRows(recommendationSet model.RecommendationSetResult) ([][]strin
 
 			variationCPULimitPercentage := truncateToThreeDecimalPlaces(
 				calculatePercentage(
-					truncateToThreeDecimalPlaces(recommendationEngine.Variation.Limits.Cpu.Amount),
+					truncateToThreeDecimalPlaces(recommendationEngine.Variation.Resources.Limits.Cpu.Amount),
 					truncateToThreeDecimalPlaces(recommendationObj.Current.Limits.Cpu.Amount),
 				))
 
 			variationMemoryLimitPercentage := truncateToThreeDecimalPlaces(
 				calculatePercentage(
-					recommendationEngine.Variation.Limits.Memory.Amount,
+					recommendationEngine.Variation.Resources.Limits.Memory.Amount,
 					recommendationObj.Current.Limits.Memory.Amount,
 				))
 
 			variationCPURequestPercentage := truncateToThreeDecimalPlaces(
 				calculatePercentage(
-					truncateToThreeDecimalPlaces(recommendationEngine.Variation.Requests.Cpu.Amount),
+					truncateToThreeDecimalPlaces(recommendationEngine.Variation.Resources.Requests.Cpu.Amount),
 					truncateToThreeDecimalPlaces(recommendationObj.Current.Requests.Cpu.Amount),
 				))
 
 			variationMemoryRequestPercentage := truncateToThreeDecimalPlaces(
 				calculatePercentage(
-					recommendationEngine.Variation.Requests.Memory.Amount,
+					recommendationEngine.Variation.Resources.Requests.Memory.Amount,
 					recommendationObj.Current.Requests.Memory.Amount,
 				))
 			rows = append(rows, []string{
@@ -828,14 +906,14 @@ func GenerateCSVRows(recommendationSet model.RecommendationSetResult) ([][]strin
 				fmt.Sprint(recommendationTerm.DurationInHours),
 				recommendationTerm.MonitoringStartTime.String(),
 				recommendationType,
-				formatPrecisionValuesToStr(convertCPUUnit("cores", recommendationEngine.Config.Limits.Cpu.Amount)),
-				recommendationEngine.Config.Limits.Cpu.Format,
-				fmt.Sprint(recommendationEngine.Config.Limits.Memory.Amount),
-				recommendationEngine.Config.Limits.Memory.Format,
-				formatPrecisionValuesToStr(convertCPUUnit("cores", recommendationEngine.Config.Requests.Cpu.Amount)),
-				recommendationEngine.Config.Requests.Cpu.Format,
-				fmt.Sprint(recommendationEngine.Config.Requests.Memory.Amount),
-				recommendationEngine.Config.Requests.Memory.Format,
+				formatPrecisionValuesToStr(convertCPUUnit("cores", recommendationEngine.Config.Resources.Limits.Cpu.Amount)),
+				recommendationEngine.Config.Resources.Limits.Cpu.Format,
+				fmt.Sprint(recommendationEngine.Config.Resources.Limits.Memory.Amount),
+				recommendationEngine.Config.Resources.Limits.Memory.Format,
+				formatPrecisionValuesToStr(convertCPUUnit("cores", recommendationEngine.Config.Resources.Requests.Cpu.Amount)),
+				recommendationEngine.Config.Resources.Requests.Cpu.Format,
+				fmt.Sprint(recommendationEngine.Config.Resources.Requests.Memory.Amount),
+				recommendationEngine.Config.Resources.Requests.Memory.Format,
 				formatPrecisionValuesToStr(variationCPULimitPercentage),
 				variationFormat,
 				fmt.Sprint(variationMemoryLimitPercentage),

@@ -54,8 +54,8 @@ type RecommendationEngineObject struct {
 		PodsCount       int                     `json:"pods_count,omitempty"`
 		ConfidenceLevel float64                 `json:"confidence_level,omitempty"`
 	*/
-	Config        ConfigObject            `json:"config,omitempty"`
-	Variation     ConfigObject            `json:"variation,omitempty"`
+	Config        RecommendationConfig    `json:"config,omitempty"`
+	Variation     RecommendationVariation `json:"variation,omitempty"`
 	Notifications map[string]Notification `json:"notifications"`
 }
 
@@ -67,6 +67,7 @@ type RecommendationData struct {
 }
 
 type RecommendationTerm struct {
+	Current               *CurrentConfig          `json:"current,omitempty"`
 	DurationInHours       float64                 `json:"duration_in_hours,omitempty"`
 	Notifications         map[string]Notification `json:"notifications,omitempty"`
 	MonitoringStartTime   time.Time               `json:"monitoring_start_time,omitempty"`
@@ -100,6 +101,32 @@ type Term struct {
 	Short_term  RecommendationTerm `json:"short_term"`
 	Medium_term RecommendationTerm `json:"medium_term"`
 	Long_term   RecommendationTerm `json:"long_term,omitempty"`
+}
+
+type CurrentConfig struct {
+	Replicas *ReplicasData `json:"replicas,omitempty"`
+}
+
+type ReplicasData struct {
+	Min int `json:"min,omitempty"`
+	Max int `json:"max,omitempty"`
+	Avg int `json:"avg,omitempty"`
+}
+
+type RecommendationConfig struct {
+	Replicas  int          `json:"replicas,omitempty"`
+	Resources ConfigObject `json:"resources,omitempty"`
+	Env       []EnvVar     `json:"env,omitempty"`
+}
+
+type RecommendationVariation struct {
+	Replicas  int          `json:"replicas,omitempty"`
+	Resources ConfigObject `json:"resources,omitempty"`
+}
+
+type EnvVar struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 type ConfigObject struct {
